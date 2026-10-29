@@ -18,7 +18,7 @@
         <div v-if="selectedCausaData" class="mt-4 border rounded-lg bg-slate-50 p-4">
           <div class="flex justify-between items-center mb-3">
             <h4 class="font-bold text-sm text-slate-800">
-              Detalle: {{ selectedCausaData.nombre }} ({{ selectedCausaData.cantidad }} órdenes)
+              Detalle: {{ selectedCausaData.nombre }} ({{ selectedCausaData.cantidad }} órdenes — {{ selectedCausaData.porcentaje.toFixed(1) }}%)
             </h4>
             <button @click="selectedCausa = null" class="text-slate-400 hover:text-slate-600">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -34,7 +34,7 @@
                   <th class="px-3 py-2.5 whitespace-nowrap">OP</th>
                   <th class="px-3 py-2.5">Producto</th>
                   <th class="px-3 py-2.5 whitespace-nowrap">Cliente</th>
-                  <th class="px-3 py-2.5 text-center whitespace-nowrap">Días</th>
+                  <th class="px-3 py-2.5 text-center whitespace-nowrap">Días de Retraso</th>
                   <th class="px-3 py-2.5 min-w-[240px]">Observación</th>
                 </tr>
               </thead>
@@ -43,13 +43,27 @@
                   <td class="px-3 py-2.5 font-semibold text-slate-800 whitespace-nowrap align-top">{{ orden.op }}</td>
                   <td class="px-3 py-2.5 align-top text-xs leading-relaxed">{{ orden.detalle }}</td>
                   <td class="px-3 py-2.5 align-top text-xs whitespace-nowrap">{{ orden.cliente }}</td>
-                  <td class="px-3 py-2.5 align-top text-center text-xs font-semibold text-slate-700">{{ orden.dias_entrega }}</td>
+                  <td class="px-3 py-2.5 align-top text-center whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                      +{{ orden.dias_retraso != null ? orden.dias_retraso : Math.max(0, (orden.dias_entrega || 0) - (orden.dias_estandar || 20)) }} días
+                    </span>
+                    <div class="text-[10px] text-slate-500 font-medium mt-0.5">
+                      Entrega: {{ orden.dias_entrega }}d / Meta: {{ orden.dias_estandar || 20 }}d
+                      <span v-if="orden.dias_extra_metraje > 0" class="text-amber-700 font-semibold ml-0.5">
+                        (+{{ orden.dias_extra_metraje }}d metraje)
+                      </span>
+                    </div>
+                  </td>
                   <td class="px-3 py-2.5 align-top text-xs leading-relaxed text-slate-700 whitespace-normal break-words">
                     {{ orden.observacion || 'Sin observación' }}
                   </td>
                 </tr>
               </tbody>
             </table>
+            <div class="px-3 py-2 bg-slate-50 border-t border-slate-200 text-[11px] text-slate-500 italic flex flex-wrap items-center justify-between gap-2">
+              <span>* Días de retraso evaluados con estándar base de 20 días (+1 día por cada 1,000m excedentes a partir de 6,500m, turnos Día + Velada).</span>
+              <span class="font-medium text-slate-600">Base: 20 días (+días metraje &gt;6,500m)</span>
+            </div>
           </div>
         </div>
       </Transition>
@@ -88,7 +102,7 @@ const chartData = computed(() => {
   const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#6b7280', '#8b5cf6', '#10b981']
   
   return {
-    labels: props.datos.causas.map(c => c.nombre),
+    labels: props.datos.causas.map(c => `${c.nombre} (${c.porcentaje.toFixed(1)}%)`),
     datasets: [
       {
         label: 'Cantidad',
@@ -120,7 +134,7 @@ const chartOptions = computed(() => {
           label: function(context) {
             const index = context.dataIndex
             const causa = props.datos.causas[index]
-            return `Cantidad: ${causa.cantidad} (${causa.porcentaje.toFixed(1)}%)`
+            return `Cantidad: ${causa.cantidad} órdenes (${causa.porcentaje.toFixed(1)}% del total)`
           }
         }
       }
